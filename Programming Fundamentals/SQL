@@ -83,7 +83,41 @@ left join payment p on b.bill_id = p.bill_id;
 select meter_id, sum(usage_units) as total_usage
 from electricity_usage group by meter_id
 having sum(usage_units) > 200;
-
+select 
+    b.bill_id,
+    b.meter_id,
+    b.bill_date,
+    b.amount_due,
+    b.due_date,
+    b.paid,
+    p.payment_id,
+    p.payment_date,
+    p.amount_paid
+from bill b
+left join payment p 
+    on b.bill_id = p.bill_id
+order by b.bill_date asc;
+select 
+    c.customer_id,
+    c.name,
+    c.address,
+    c.phone_number,
+    c.email
+from customer c
+join meter m 
+    on c.customer_id = m.customer_id
+where m.installation_date > '2023-12-31';
+select 
+    m.meter_id,
+    m.last_reading_date,
+    sum(eu.usage_units) as total_usage
+from meter m
+join electricity_usage eu 
+    on m.meter_id = eu.meter_id
+group by 
+    m.meter_id, m.last_reading_date
+order by 
+    total_usage desc;
 
 
 
