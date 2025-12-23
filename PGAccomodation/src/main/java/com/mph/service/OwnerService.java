@@ -1,39 +1,42 @@
 package com.mph.service;
 
-import java.util.List;
-
+import com.mph.dao.OwnerRepository;
+import com.mph.dao.PGRepository;
+import com.mph.dto.OwnerDTO;
+import com.mph.dto.PGDTO;
+import com.mph.model.Owner;
+import com.mph.model.PG;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.mph.dao.CityRepository;
-import com.mph.dao.OwnerRepository;
-import com.mph.dao.PGRepository;
-import com.mph.dto.PGDTO;
-import com.mph.model.City;
-import com.mph.model.Owner;
-import com.mph.model.PG;
+import java.util.List;
 
 @Service
 public class OwnerService {
 
     @Autowired
-    private PGRepository pgRepo;
-
-    @Autowired
     private OwnerRepository ownerRepo;
 
     @Autowired
-    private CityRepository cityRepo;
+    private PGRepository pgRepo;
 
-    // 5. Add a new PG place
-    public PG addPG(PGDTO pgdto) {
-        if (pgdto.getOwnerId() == null) throw new RuntimeException("ownerId is required in PGDTO");
-        if (pgdto.getCityId() == null) throw new RuntimeException("cityId is required in PGDTO");
+    // ✅ Add Owner
+    public Owner addOwner(OwnerDTO ownerdto) {
+        if (ownerdto.getAge() < 18) {
+            throw new RuntimeException("Owner must be at least 18 years old.");
+        }
+        Owner owner = new Owner();
+        owner.setName(ownerdto.getName());
+        owner.setAge(ownerdto.getAge());
+        owner.setContactNo(ownerdto.getContactNo());
+        owner.setEmailId(ownerdto.getEmailId());
+        return ownerRepo.save(owner);
+    }
 
-        Owner owner = ownerRepo.findById(pgdto.getOwnerId())
-                               .orElseThrow(() -> new RuntimeException("Owner not found"));
-        City city = cityRepo.findById(pgdto.getCityId())
-                            .orElseThrow(() -> new RuntimeException("City not found"));
+    // ✅ Add PG
+    public PG addPG(Long ownerId, PGDTO pgdto) {
+        Owner owner = ownerRepo.findById(ownerId)
+                .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         PG pg = new PG();
         pg.setName(pgdto.getName());
@@ -43,63 +46,52 @@ public class OwnerService {
         pg.setPopularityCount(pgdto.getPopularityCount());
         pg.setLocality(pgdto.getLocality());
         pg.setRentAmount(pgdto.getRentAmount());
-        pg.setAvailable(pgdto.getAvailableRooms() > 0);
+        pg.setAvailable(pgdto.isAvailable());
         pg.setOwner(owner);
-        pg.setCity(city);
 
         return pgRepo.save(pg);
     }
 
-    // 6. Retrieve all PG places added by the owner
-    public List<PG> getPGsByOwner() {
-        // If you want to filter by specific owner, adjust this to a query using ownerId context
-        return pgRepo.findAll();
+    // Retrieve PGs by owner
+    public List<PG> getPGsByOwner(Long ownerId) {
+        Owner owner = ownerRepo.findById(ownerId)
+                .orElseThrow(() -> new RuntimeException("Owner not found"));
+        return owner.getPgList();
     }
 
-    // 7. Change availability
-    public PG toggleAvailability(Long pgId) {
+    // Set availability using pgdto.isAvailable()
+    public PG setAvailability(Long pgId, PGDTO pgdto) {
         PG pg = pgRepo.findById(pgId)
-                      .orElseThrow(() -> new RuntimeException("PG not found"));
-        pg.setAvailable(!pg.isAvailable());
+                .orElseThrow(() -> new RuntimeException("PG not found"));
+        pg.setAvailable(pgdto.isAvailable());
         return pgRepo.save(pg);
     }
 
-    // 8. Edit place details
-    public PG editPGDetails(PGDTO pgdto) {
-        if (pgdto.getPgId() == null) throw new RuntimeException("pgId is required to edit place");
-
+    // Edit PG details
+    public PG editPGDetails(Long ownerId, PGDTO pgdto) {
         PG pg = pgRepo.findById(pgdto.getPgId())
-                      .orElseThrow(() -> new RuntimeException("PG not found"));
+                .orElseThrow(() -> new RuntimeException("PG not found"));
 
-        // optional: verify owner via pgdto.getOwnerId() if needed
-        if (pgdto.getName() != null) pg.setName(pgdto.getName());
+        if (!pg.getOwner().getOwnerId().equals(ownerId)) {
+            throw new RuntimeException("Unauthorized: PG does not belong to this owner");
+        }
+
+        pg.setName(pgdto.getName());
         pg.setArea(pgdto.getArea());
         pg.setNumberOfRooms(pgdto.getNumberOfRooms());
         pg.setAvailableRooms(pgdto.getAvailableRooms());
         pg.setPopularityCount(pgdto.getPopularityCount());
-        if (pgdto.getLocality() != null) pg.setLocality(pgdto.getLocality());
+        pg.setLocality(pgdto.getLocality());
         pg.setRentAmount(pgdto.getRentAmount());
-        pg.setAvailable(pgdto.getAvailableRooms() > 0);
-
-        if (pgdto.getCityId() != null) {
-            City city = cityRepo.findById(pgdto.getCityId())
-                                .orElseThrow(() -> new RuntimeException("City not found"));
-            pg.setCity(city);
-        }
-
-        if (pgdto.getOwnerId() != null) {
-            Owner owner = ownerRepo.findById(pgdto.getOwnerId())
-                                   .orElseThrow(() -> new RuntimeException("Owner not found"));
-            pg.setOwner(owner);
-        }
+        pg.setAvailable(pgdto.isAvailable());
 
         return pgRepo.save(pg);
     }
 
-    // 9. Delete place
+    // Delete PG
     public void deletePG(Long pgId) {
         PG pg = pgRepo.findById(pgId)
-                      .orElseThrow(() -> new RuntimeException("PG not found"));
+                .orElseThrow(() -> new RuntimeException("PG not found"));
         pgRepo.delete(pg);
     }
 }

@@ -17,14 +17,19 @@ public class OwnerDTO {
         this.emailId = emailId;
     }
 
+    // Getters and setters
     public Long getOwnerId() { return ownerId; }
     public void setOwnerId(Long ownerId) { this.ownerId = ownerId; }
+
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
     public int getAge() { return age; }
     public void setAge(int age) { this.age = age; }
+
     public String getContactNo() { return contactNo; }
     public void setContactNo(String contactNo) { this.contactNo = contactNo; }
+
     public String getEmailId() { return emailId; }
     public void setEmailId(String emailId) { this.emailId = emailId; }
 }
